@@ -8,7 +8,6 @@ class Point:
     j: int
     value: int
     flashed: bool = False
-    visited: int = 0
 
 
 with open("input1_example.txt") as f:
