@@ -1,13 +1,63 @@
-import math
 import re
 from collections import Counter
+from dataclasses import dataclass
+from typing import List, Tuple, Dict, Set, Union
 
-import numpy as np
-from numpy import rot90, array
 
-with open("input1_example.txt") as f:
-    raw_data = f.readlines()
-    sc = []
+@dataclass(frozen=True)
+class Point:
+    x: int
+    y: int
+    z: int
+
+    def __str__(self):
+        return f"({self.x},{self.y},{self.z})"
+
+    def __repr__(self):
+        return f"({self.x},{self.y},{self.z})"
+
+    def __eq__(self, other):
+        return self.x == other.x and self.y == other.y and self.z == other.z
+
+    def __hash__(self):
+        return hash(hash(self.x) + hash(self.y) + hash(self.z))
+
+
+@dataclass
+class Vector:
+    element1: Point
+    element2: Point
+    value: Union[None, Tuple[int, int, int]] = None
+
+    def __post_init__(self):
+        self.value = tuple([self.element1.x - self.element2.x, self.element1.y - self.element2.y, self.element1.z - self.element2.z])
+
+
+@dataclass
+class Position:
+    available_points: List[Point]
+    vectors: Dict[Tuple, Vector] = None
+
+    def __post_init__(self):
+        self.vectors = {}
+
+    def __eq__(self, other):
+        return self.available_points == other.available_points
+
+    def __hash__(self):
+        return hash(tuple(self.available_points))
+
+
+@dataclass
+class Scanner:
+    positions: Set[Position]
+    starting_point: Union[None, Point] = None
+    starting_point_flipped: Union[None, Point] = None
+    actual_points: Union[None, List[Point]] = None
+
+
+def parse_data():
+    map = []
     i = 0
     rows = []
     first = True
@@ -16,19 +66,21 @@ with open("input1_example.txt") as f:
         scanner_num = re.match("--- scanner (\d+) ---", raw_row)
         if scanner_num:
             number = int(scanner_num.group(1))
-
         elif raw_row == "":
-            scanners = []
+            scanner = Scanner(set())
             if first == True:
-                a = []
-                for c in rows:
-                    a.append([c[0], c[1],c[2]])
-                scanners.append(a)
+                position = Position([])
+                for row in rows:
+                    position.available_points.append(Point(row[0], row[1], row[2]))
+
+                scanner.positions.add(position)
+                scanner.starting_point = Point(0, 0, 0)
+                scanner.starting_point_flipped = Point(0, 0, 0)
                 first = False
             else:
                 for rotation in [
-                    [1,1,1],
-                    [-1,1,1],
+                    [1, 1, 1],
+                    [-1, 1, 1],
                     [1, -1, 1],
                     [1, 1, -1],
                     [-1, -1, 1],
@@ -36,107 +88,116 @@ with open("input1_example.txt") as f:
                     [1, -1, -1],
                     [-1, -1, -1]
                 ]:
-                    a = []
-                    for c in rows:
-                        a.append([rotation[0]*c[0],rotation[1]*c[1],rotation[2]*c[2]])
-                    scanners.append(a)
+                    position = Position([])
+                    for row in rows:
+                        position.available_points.append(Point(rotation[0] * row[0], rotation[1] * row[1], rotation[2] * row[2]))
+                    scanner.positions.add(position)
 
-                    a = []
-                    for c in rows:
-                        a.append([rotation[0]*c[0],rotation[1]*c[2],rotation[2]*c[1]])
-                    scanners.append(a)
+                    position = Position([])
+                    for row in rows:
+                        position.available_points.append(Point(rotation[0] * row[0], rotation[1] * row[2], rotation[2] * row[1]))
+                    scanner.positions.add(position)
 
-                    a = []
-                    for c in rows:
-                        a.append([rotation[0] * c[1], rotation[1] * c[0], rotation[2] * c[2]])
-                    scanners.append(a)
+                    position = Position([])
+                    for row in rows:
+                        position.available_points.append(Point(rotation[0] * row[1], rotation[1] * row[0], rotation[2] * row[2]))
+                    scanner.positions.add(position)
 
-                    a = []
-                    for c in rows:
-                        a.append([rotation[0] * c[1], rotation[1] * c[2], rotation[2] * c[0]])
-                    scanners.append(a)
+                    position = Position([])
+                    for row in rows:
+                        position.available_points.append(Point(rotation[0] * row[1], rotation[1] * row[2], rotation[2] * row[0]))
+                    scanner.positions.add(position)
 
-                    a = []
-                    for c in rows:
-                        a.append([rotation[0] * c[2], rotation[1] * c[0], rotation[2] * c[1]])
-                    scanners.append(a)
+                    position = Position([])
+                    for row in rows:
+                        position.available_points.append(Point(rotation[0] * row[2], rotation[1] * row[0], rotation[2] * row[1]))
+                    scanner.positions.add(position)
 
-                    a = []
-                    for c in rows:
-                        a.append([rotation[0] * c[2], rotation[1] * c[1], rotation[2] * c[0]])
-                    scanners.append(a)
-            sc.append(scanners)
+                    position = Position([])
+                    for row in rows:
+                        position.available_points.append(Point(rotation[0] * row[2], rotation[1] * row[1], rotation[2] * row[0]))
+                    scanner.positions.add(position)
+            map.append(scanner)
             rows = []
         else:
             rows.append([int(x) for x in raw_row.split(",")])
         i += 1
+    return map
+
+
+with open("input1.txt") as f:
+    raw_data = f.readlines()
+    map = parse_data()
 
 list_vectors = []
-for scanners in sc:
+for scanner in map:
     vectors_per_scanner = []
-    for row1 in scanners:
+    for position in scanner.positions:
         vectors = dict()
-        for i in range(len(row1)):
-            for j in range(len(row1)):
+        for i in range(len(position.available_points)):
+            for j in range(len(position.available_points)):
                 if i == j:
                     continue
                 else:
-                    element1=row1[i]
-                    element2 = row1[j]
-                    vectors[tuple([element1[0] - element2[0], element1[1] - element2[1], element1[2] -element2[2]])] = [element1,element2]
+                    element1 = position.available_points[i]
+                    element2 = position.available_points[j]
+                    vector = Vector(element1, element2)
+                    position.vectors[vector.value] = vector
+N = 15
+i = 0
+while i < N:
+    n = 11 * 12
+    all = list()
+    for scanner_idx1, scanner1 in enumerate(map):
+        for scanner_idx2, scanner2 in enumerate(map):
+            if scanner1 == scanner2:
+                continue
+            if scanner2.starting_point is not None:
+                continue
+            if len(scanner1.positions) != 1 and len(scanner2.positions) != 1:
+                continue
+            for i1, scanner1_position in enumerate(scanner1.positions):
+                for i2, scanner2_position in enumerate(scanner2.positions):
+                    if len(set(scanner1_position.vectors.keys()).intersection(set(scanner2_position.vectors.keys()))) >= n:
+                        bases = set()
+                        for vector, vector_points1 in scanner1_position.vectors.items():
+                            if vector in scanner2_position.vectors:
+                                vector_points2 = scanner2_position.vectors[vector]
+                                bases.add(Point(-1 * vector_points2.element1.x + vector_points1.element1.x,
+                                                -1 * vector_points2.element1.y + vector_points1.element1.y,
+                                                -1 * vector_points2.element1.z + vector_points1.element1.z))
+                        if len(bases) == 1:
+                            base = bases.pop()
+                            starting_point2 = Point(-1 * base.x + scanner1.starting_point.x,
+                                                    -1 * base.y + scanner1.starting_point.y,
+                                                    -1 * base.z + scanner1.starting_point.z)
+                            scanner2.starting_point = starting_point2
+                            scanner2.starting_point_flipped = Point(starting_point2.x * -1, starting_point2.y * -1, starting_point2.z * -1)
+                            scanner2.positions = [scanner2_position]
+    i += 1
+for element in map:
+    print(element.starting_point_flipped)
+points = []
+for scanner in map:
+    if len(scanner.positions) == 1:
+        position = scanner.positions.pop()
+        for point in position.available_points:
+            points.append(Point(point.x + scanner.starting_point_flipped.x,
+                                point.y + scanner.starting_point_flipped.y,
+                                point.z + scanner.starting_point_flipped.z))
+all_counted = Counter(points)
+print(len(all_counted))
+for k, v in sorted(all_counted.items(), key=lambda x: x[0].x):
+    print(k, v)
+print(len(all_counted))
 
-        vectors_per_scanner.append(vectors)
-    list_vectors.append(vectors_per_scanner)
-starting_points = [None for x in range(len(list_vectors))]
-starting_points[0] = [0, 0, 0]
-points = [set() for x in range(len(list_vectors))]
-for p in sc[0][0]:
-    points[0].add(tuple(p))
-S = set()
-# njsdvfo = [tuple([0,0,0]) for x in range(len(list_vectors))]
-n = 11*12
-all =list()
-for idx1,vectors1 in enumerate(list_vectors):
-    for idx2, vectors2 in enumerate(list_vectors):
-        if starting_points[idx2] is not None:
-            continue
-        if vectors1 == vectors2:
-            continue
-        for i1, v1 in enumerate(vectors1):
-            for i2, v2 in enumerate(vectors2):
-                if len(set(v1.keys()).intersection(set(v2.keys())))>= n:
-                    l1 = sc[idx1][i1]
-                    l2 = sc[idx2][i2]
-                    s = set()
-                    for k1, v1e in v1.items():
-                        if k1 in v2:
-                            v2e = v2[k1]
-                            s.add(tuple([v2e[1][0] + v1e[0][0],
-                                         v2e[1][1] + v1e[0][1],
-                                         v2e[1][2] + v1e[0][2]]))
-                    if len(s) == 1:
-                        mvniw = s.pop()
-                        starting_point= tuple([-1*mvniw[0] + starting_points[idx1][0],
-                                               -1*mvniw[1] + starting_points[idx1][1],
-                                               -1*mvniw[2] + starting_points[idx1][2]])
-                        S.add(starting_point)
-                        list_vectors[idx2] = [v2]
-                        starting_points[idx2] = starting_point
 
-                        for v2e in set([tuple(x[0]) for x in v2.values()]):
-                            a = (-1*(starting_points[idx2][0] + v2e[0]),
-                                               -1*(starting_points[idx2][1] + v2e[1]),
-                                               -1*(starting_points[idx2][2] + v2e[2]))
-                            points[idx2].add(a)
+def manhattan(point1, point2):
+    return abs(point1.x - point2.x) + abs(point1.y - point2.y) + abs(point1.z - point2.z)
 
-                        a =1
 
-print(starting_points)
-all_counted = Counter([y for x in points for y in x])
-print(len(all))
-a = []
-for k,v in sorted(all_counted.items(), key=lambda x:x[0]):
-    if v >=2:
-        print(k, v)
-        a.append(k)
-print(len(a))
+distances = []
+for scanner1 in map:
+    for scanner2 in map:
+        distances.append(manhattan(scanner1.starting_point_flipped, scanner2.starting_point_flipped))
+print(max(distances))
