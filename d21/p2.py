@@ -41,16 +41,24 @@ def get_rolls(available_positions, data):
     return new_positions,new_data, won
 
 all_won = 0
+data = [[0 for positions in range(11)] for points in range(N)]
+available_positions = {(default_position1, 0, 1)}
 while True:
     available_positions = {(default_position1, 0, 1)}
     data = [[0 for positions in range(11)] for points in range(N)]
     available_positions, data, won = get_rolls(available_positions, data)
     all_won+=won
 
-    available_positions2 = {(default_position2, 0, 1)}
-    data2 = [[0 for positions in range(11)] for points in range(N)]
-    available_positions2, data2, won2 = get_rolls(available_positions2, data2)
-    all_won += won
+    for i in data:
+        for j in i:
+            print(f"{j:3d}",end="")
+        print()
+    print()
+    a =1
+    # available_positions2 = {(default_position2, 0, 1)}
+    # data2 = [[0 for positions in range(11)] for points in range(N)]
+    # available_positions2, data2, won2 = get_rolls(available_positions2, data2)
+    # all_won += won
 
 if player1.points < player2.points:
     print(player1.points*rolled)
