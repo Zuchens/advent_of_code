@@ -38,14 +38,6 @@ while True:
                 new_data[i][j] = lines[i][j]
     lines = new_data
     new_data = [[None for j in range(len(lines[i]))] for i in range(len(lines))]
-    # for i in range(len(lines)):
-    #     for j in range(len(lines[i])):
-    #         if lines[i][j] is None:
-    #             print(".",end="")
-    #         else:
-    #             print(lines[i][j].side, end="")
-    #     print()
-    # print()
     for i in range(len(lines)):
         for j in range(len(lines[i])):
             if lines[i][j] is None:
@@ -71,17 +63,8 @@ while True:
                 diff+=1
     if diff == 0:
         break
-    # print()
     lines = new_data
 
-    # for i in range(len(lines)):
-    #     for j in range(len(lines[i])):
-    #         if lines[i][j] is None:
-    #             print(".", end="")
-    #         else:
-    #             print(lines[i][j].side, end="")
-    #     print()
-    # print()
     idx+=1
 
 print(idx+1)
